@@ -63,8 +63,13 @@ opcion = st.sidebar.selectbox(
 
 if opcion == "Base de datos":
     st.subheader("📂 Base de datos")
+    # Crear copia para formatear sin alterar el df original
+    df_tabla = df[["Museo", "Visitantes anuales", "Visitantes extranjeros (%)"]].copy()
+    
+    # Formatear "Visitantes anuales" como enteros
+    df_tabla["Visitantes anuales"] = df_tabla["Visitantes anuales"].astype(int)
     st.dataframe(
-        df[["Museo", "Visitantes anuales", "Visitantes extranjeros (%)"]],
+        df_tabla,
         use_container_width=True
     )
 
