@@ -40,7 +40,7 @@ df = df.rename(columns={
     "volatilidad_promedio": "Volatilidad",
     "share_estatal_promedio": "Participación estatal",
     "porcentaje_extranjeros": "Visitantes extranjeros (%)",
-    "cluster": "Cluster"
+    "cluster": "Grupo"   
 })
 
 # ============================================================
@@ -52,7 +52,7 @@ opcion = st.sidebar.selectbox(
     "Selecciona sección",
     [
         "Base de datos",
-        "Visualización de Clusters",
+        "Visualización de Grupos",  # ✅
         "Análisis individual"
     ]
 )
@@ -63,66 +63,60 @@ opcion = st.sidebar.selectbox(
 
 if opcion == "Base de datos":
     st.subheader("📂 Base de datos")
-    # Crear copia para formatear sin alterar el df original
     df_tabla = df[["Museo", "Visitantes anuales", "Visitantes extranjeros (%)"]].copy()
-    
-    # Formatear "Visitantes anuales" como enteros
     df_tabla["Visitantes anuales"] = df_tabla["Visitantes anuales"].astype(int)
-    st.dataframe(
-        df_tabla,
-        use_container_width=True
-    )
+    st.dataframe(df_tabla, use_container_width=True)
 
 # ============================================================
-# VISUALIZACIÓN CLUSTERS
+# VISUALIZACIÓN GRUPOS
 # ============================================================
 
-elif opcion == "Visualización de Clusters":
-    st.subheader("📊 Análisis estratégico de clusters")
+elif opcion == "Visualización de Grupos":
+    st.subheader("📊 Análisis estratégico de grupos") 
 
     total_museos = len(df)
     visitantes_totales = df["Visitantes anuales"].sum()
     visitantes_promedio = df["Visitantes anuales"].mean()
-    cluster_dominante = df["Cluster"].value_counts().idxmax()
+    grupo_dominante = df["Grupo"].value_counts().idxmax()  
 
     col1, col2, col3, col4 = st.columns(4)
     col1.metric("Total museos", total_museos)
     col2.metric("Visitantes totales", f"{visitantes_totales:,.0f}")
     col3.metric("Promedio por museo", f"{visitantes_promedio:,.0f}")
-    col4.metric("Cluster dominante", cluster_dominante)
+    col4.metric("Grupo dominante", grupo_dominante)  
 
     st.markdown("---")
 
     # MAPA
     st.subheader("🧭 Mapa estratégico")
     fig, ax = plt.subplots()
-    scatter = ax.scatter(df["PC1"], df["PC2"], c=df["Cluster"], s=80)
-    legend = ax.legend(*scatter.legend_elements(), title="Cluster")
+    scatter = ax.scatter(df["PC1"], df["PC2"], c=df["Grupo"], s=80)  
+    legend = ax.legend(*scatter.legend_elements(), title="Grupo")   
     ax.add_artist(legend)
     st.pyplot(fig)
 
     # PERFIL
-    st.subheader("🧠 Perfil promedio")
-    columnas_cluster = [
+    st.subheader("🧠 Perfil promedio por grupo")  
+    columnas_grupo = [
         "Visitantes anuales",
         "Variabilidad anual",
         "Volatilidad",
         "Participación estatal",
         "Visitantes extranjeros (%)"
     ]
-    resumen = df.groupby("Cluster")[columnas_cluster].mean()
+    resumen = df.groupby("Grupo")[columnas_grupo].mean()  
     st.dataframe(resumen)
 
     # INTERPRETACIÓN IA
     contenedor = st.container()
-    if "interpretacion_clusters" not in st.session_state:
-        st.session_state["interpretacion_clusters"] = ""
+    if "interpretacion_grupos" not in st.session_state:
+        st.session_state["interpretacion_grupos"] = ""
 
-    if st.button("Generar interpretación de clusters"):
+    if st.button("Generar interpretación de grupos"): 
         prompt = f"""
-        Analiza estos clusters:
+        Analiza estos grupos (segmentos) de museos:
         {resumen}
-        Explica cada cluster y da recomendaciones.
+        Explica cada grupo en lenguaje sencillo y da recomendaciones.
         Máximo 120 palabras.
         """
         with st.spinner("Analizando..."):
@@ -130,12 +124,12 @@ elif opcion == "Visualización de Clusters":
                 model="gpt-5-mini",
                 messages=[{"role": "user", "content": prompt}]
             )
-            st.session_state["interpretacion_clusters"] = response.choices[0].message.content
+            st.session_state["interpretacion_grupos"] = response.choices[0].message.content
 
     with contenedor:
-        if st.session_state["interpretacion_clusters"] != "":
+        if st.session_state["interpretacion_grupos"] != "":
             st.success("Interpretación generada")
-            st.info(st.session_state["interpretacion_clusters"])
+            st.info(st.session_state["interpretacion_grupos"])
 
 # ============================================================
 # ANÁLISIS INDIVIDUAL
@@ -150,11 +144,11 @@ elif opcion == "Análisis individual":
     visitantes = museo_data["Visitantes anuales"]
     visitantes_dia = visitantes / 365
     extranjeros = museo_data["Visitantes extranjeros (%)"] * 100
-    cluster = museo_data["Cluster"]
+    grupo = museo_data["Grupo"]  
 
-    if cluster == 0:
+    if grupo == 0:
         nivel = "Alta afluencia"
-    elif cluster == 1:
+    elif grupo == 1:
         nivel = "Baja afluencia"
     else:
         nivel = "Afluencia media"
@@ -181,7 +175,6 @@ elif opcion == "Análisis individual":
     if "museo_actual" not in st.session_state:
         st.session_state["museo_actual"] = museo
 
-    # Detectar cambio de museo
     if museo != st.session_state["museo_actual"]:
         st.session_state["interpretacion_museo"] = ""
         st.session_state["museo_actual"] = museo
@@ -198,8 +191,8 @@ elif opcion == "Análisis individual":
         {museo}
         Visitantes: {visitantes}
         Extranjeros: {extranjeros:.2f}%
-        Cluster: {cluster}
-        Da recomendaciones.
+        Grupo: {grupo}
+        Da recomendaciones claras para un director.
         Máximo 150 palabras.
         """
         with st.spinner("Analizando..."):
